@@ -23,6 +23,8 @@ public class FTPClientGUI extends JFrame {
     private File currentLocalDirectory = new File(".\\src\\client\\VaultC");
     private File currentServerDirectory = new File(".\\src\\servidor\\vaultServer");
 
+    private CommandHandler commandHandler = new CommandHandler(socket) ;
+
     public FTPClientGUI() {
         setTitle("MyFTP Client");
         setSize(800, 600);
@@ -201,10 +203,15 @@ public class FTPClientGUI extends JFrame {
         if (selected == null) return;
 
         if (selected.equals("[..]")) {
-            currentServerDirectory = currentServerDirectory.getParentFile();
+            // currentServerDirectory = currentServerDirectory.getParentFile();
+            commandHandler.handleCommand("cd..", out, socket, currentServerDirectory);
+            currentServerDirectory = commandHandler.getCurrentDirectory();
         } else if (selected.startsWith("[DIR] ")) {
             String dirName = selected.substring(6);
-            currentServerDirectory = new File(currentServerDirectory, dirName);
+            // currentServerDirectory = new File(currentServerDirectory, dirName);
+            String command = "cd " + dirName;
+            commandHandler.handleCommand(command, out, socket, currentServerDirectory);
+            currentServerDirectory = commandHandler.getCurrentDirectory();
         } else {
             return; // Não faz nada para arquivos
         }
