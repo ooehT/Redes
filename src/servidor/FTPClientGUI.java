@@ -90,14 +90,6 @@ public class FTPClientGUI extends JFrame {
         localButtonPanel.add(refreshLocalButton); // Adiciona ao painel
 
 
-        createFileL = new JButton("+");
-        removeFileL = new JButton("-");
-        createFileL.setEnabled(false);
-        removeFileL.setEnabled(false);
-        removeFileL.addActionListener(e -> removeClickFile());
-        createFileL.addActionListener(e -> createNewFile());
-        localButtonPanel.add(createFileL); // Adiciona diretamente ao painel
-        localButtonPanel.add(removeFileL); // Adiciona diretamente ao painel
 
 
         uploadButton = new JButton("Enviar (Upload)");
@@ -130,6 +122,15 @@ public class FTPClientGUI extends JFrame {
         refreshRemoteButton = new JButton("Atualizar");
         refreshRemoteButton.addActionListener(e -> refreshServerFiles());
         remoteButtonPanel.add(refreshRemoteButton);
+
+        createFileL = new JButton("+");
+        removeFileL = new JButton("-");
+        createFileL.setEnabled(false);
+        removeFileL.setEnabled(false);
+        removeFileL.addActionListener(e -> removeClickFile());
+        createFileL.addActionListener(e -> createNewFile());
+        remoteButtonPanel.add(createFileL); // Adiciona diretamente ao painel
+        remoteButtonPanel.add(removeFileL); // Adiciona diretamente ao painel
 
 
         downloadButton = new JButton("Baixar (Download)");
@@ -386,20 +387,24 @@ public class FTPClientGUI extends JFrame {
         }
     }
     private void removeClickFile(){
-        String selected = localFileList.getSelectedValue();
-
+        String selected = remoteFileList.getSelectedValue();
+        if(selected==null){
+            JOptionPane.showMessageDialog(this, "Selecione o arquivo", "Erro", JOptionPane.ERROR_MESSAGE);
+        }
         if(selected.startsWith("[DIR] ")){
             selected = selected.substring("[DIR] ".length());
         }
-        File fileToDownload = new File(currentLocalDirectory, selected);
+        File fileToDownload = new File(currentServerDirectory   , selected);
         if (!fileToDownload.exists()) {
             JOptionPane.showMessageDialog(this, "Arquivo não encontrado no servidor", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
 
-        fileToDownload.delete();
-        refreshLocalFiles();
+        if(fileToDownload.delete()) {
+            refreshServerFiles();
+            logArea.append("Arquivo excluido: " + fileToDownload.getName() + "\n");
+        }
     }
 
     private void createNewFile(){
@@ -412,7 +417,7 @@ public class FTPClientGUI extends JFrame {
         if (fileName == null || fileName.trim().isEmpty()) {
             return;
         }
-        File newDir = new File(currentLocalDirectory, fileName);
+        File newDir = new File(currentServerDirectory, fileName);
         if (newDir.mkdir()) {
             logArea.append("Pasta criada: " + fileName + "\n");
             refreshLocalFiles(); // Atualiza a lista de arquivos/pastas
@@ -424,8 +429,7 @@ public class FTPClientGUI extends JFrame {
                     JOptionPane.ERROR_MESSAGE
             );
         }
-        logArea.append("Arquivo Criado: " + fileName + "\n");
-
+        refreshServerFiles();
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
