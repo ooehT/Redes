@@ -13,7 +13,7 @@ public class FTPClientGUI extends JFrame {
     private JTextArea logArea;
     private JList<String> localFileList, remoteFileList;
     private DefaultListModel<String> localListModel, remoteListModel;
-    private JButton uploadButton, downloadButton, refreshLocalButton, refreshRemoteButton;
+    private JButton uploadButton, downloadButton, refreshLocalButton, refreshRemoteButton, createFileL, removeFileL, createFileR, removeFileR ;
     private JLabel statusLabel;
 
     private Socket socket;
@@ -81,16 +81,27 @@ public class FTPClientGUI extends JFrame {
         JScrollPane localScroll = new JScrollPane(localFileList);
         localPanel.add(localScroll, BorderLayout.CENTER);
 
+
         JPanel localButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+
         refreshLocalButton = new JButton("Atualizar");
         refreshLocalButton.addActionListener(e -> refreshLocalFiles());
-        localButtonPanel.add(refreshLocalButton);
+        localButtonPanel.add(refreshLocalButton); // Adiciona ao painel
+
+
+        createFileL = new JButton("+");
+        removeFileL = new JButton("-");
+        createFileL.setEnabled(false);
+        removeFileL.setEnabled(false);
+        localButtonPanel.add(createFileL); // Adiciona diretamente ao painel
+        localButtonPanel.add(removeFileL); // Adiciona diretamente ao painel
+
 
         uploadButton = new JButton("Enviar (Upload)");
         uploadButton.setEnabled(false);
         uploadButton.addActionListener(e -> uploadFile());
-        localButtonPanel.add(uploadButton);
-
+        localButtonPanel.add(uploadButton); // Adiciona ao painel
         localPanel.add(localButtonPanel, BorderLayout.SOUTH);
 
         // Painel de arquivos remotos e logs
@@ -118,6 +129,13 @@ public class FTPClientGUI extends JFrame {
         refreshRemoteButton.addActionListener(e -> refreshServerFiles());
         remoteButtonPanel.add(refreshRemoteButton);
 
+        createFileR = new JButton("+");
+        removeFileR = new JButton("-");
+        createFileR.setEnabled(false);
+        removeFileR.setEnabled(false);
+        remoteButtonPanel.add(createFileR); // Adiciona diretamente ao painel
+        remoteButtonPanel.add(removeFileR); // Adiciona diretamente ao painel
+
         downloadButton = new JButton("Baixar (Download)");
         downloadButton.setEnabled(false);
         downloadButton.addActionListener(e -> downloadFile());
@@ -139,7 +157,6 @@ public class FTPClientGUI extends JFrame {
         mainPanel.add(remotePanel);
 
         add(mainPanel, BorderLayout.CENTER);
-
         // Barra de status
         statusLabel = new JLabel("Desconectado");
         add(statusLabel, BorderLayout.SOUTH);
@@ -224,6 +241,11 @@ public class FTPClientGUI extends JFrame {
             disconnectButton.setEnabled(true);
             uploadButton.setEnabled(true);
             downloadButton.setEnabled(true);
+            createFileR.setEnabled(true);
+            removeFileR.setEnabled(true);
+            createFileL.setEnabled(true);
+            removeFileL.setEnabled(true);
+
             statusLabel.setText("Conectado a " + server + ":" + port);
 
         } catch (Exception e) {
@@ -245,6 +267,10 @@ public class FTPClientGUI extends JFrame {
             disconnectButton.setEnabled(false);
             uploadButton.setEnabled(false);
             downloadButton.setEnabled(false);
+            createFileL.setEnabled(false);
+            removeFileL.setEnabled(false);
+            createFileR.setEnabled(false);
+            removeFileR.setEnabled(false);
             statusLabel.setText("Desconectado");
             logArea.append("Desconectado do servidor\n");
         }
@@ -367,7 +393,13 @@ public class FTPClientGUI extends JFrame {
             logArea.append("Erro ao baixar arquivo: " + e.getMessage() + "\n");
         }
     }
-
+    private void removeClickFile(){
+        String selected = localFileList.getSelectedValue();
+        if (selected == null || selected.startsWith("[") || !connected) {
+            JOptionPane.showMessageDialog(this, "Selecione um arquivo para baixar", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+    }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             FTPClientGUI gui = new FTPClientGUI();
