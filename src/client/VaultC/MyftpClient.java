@@ -1,9 +1,7 @@
-//
+package client.VaultC;//
 // Source code recreated from a .class file by IntelliJ IDEA
 // (powered by FernFlower decompiler)
 //
-
-package client;
 
 import java.io.BufferedReader;
 import java.io.File;

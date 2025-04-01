@@ -2,141 +2,134 @@ package servidor;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.StringTokenizer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-public class CommandHandler implements Runnable {
-    private Socket clientSocket;
-    private BufferedReader in;
-    private PrintWriter out;
+public class CommandHandler {
+    private File currentDirectory = new File("C:\\Users\\theo1\\IdeaProjects\\Rede de computadors\\src\\client\\VaultC");
+    private File serverDirectory = new File("C:\\Users\\theo1\\IdeaProjects\\Rede de computadors\\src\\servidor\\vaultServer");
 
-    public CommandHandler(Socket socket) {
-        this.clientSocket = socket;
+    public CommandHandler(Socket clientSocket) {
+        // Cria os diretórios se não existirem
+        if (!currentDirectory.exists()) {
+            currentDirectory.mkdir();
+        }
+        if (!serverDirectory.exists()) {
+            serverDirectory.mkdir();
+        }
     }
 
-    @Override
-    public void run() {
+    public void handleCommand(String[] parts, PrintWriter out, Socket socket) {
         try {
-            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            out = new PrintWriter(clientSocket.getOutputStream(), true);
+            switch (parts[0]) {
+                case "ls":
+                    File[] files = currentDirectory.listFiles();
+                    if (files != null && files.length > 0) {
+                        for (File file : files) {
+                            out.println(file.isDirectory() ? "[DIR] " + file.getName() : "[FILE] " + file.getName());
+                        }
+                    } else {
+                        out.println("O diretório está vazio.");
+                    }
+                    break;
+                case "cd":
+                    if (parts.length < 2) {
+                        out.println("Erro: Nome do diretório não especificado.");
+                    } else {
+                        File newDir = new File(currentDirectory, parts[1]);
+                        if (newDir.exists() && newDir.isDirectory()) {
+                            currentDirectory = newDir;
+                            out.println("Diretório alterado para: " + currentDirectory.getAbsolutePath());
+                        } else {
+                            out.println("Erro: Diretório não encontrado.");
+                        }
+                    }
+                    break;
+                case "cd..":
+                    File parentDir = currentDirectory.getParentFile();
+                    if (parentDir != null) {
+                        currentDirectory = parentDir;
+                        out.println("Diretório alterado para: " + currentDirectory.getAbsolutePath());
+                    } else {
+                        out.println("Erro: Não há diretório pai.");
+                    }
+                    break;
+                case "mkdir":
+                    if (parts.length < 2) {
+                        out.println("Erro: Nome da pasta não especificado.");
+                    } else {
+                        File newDir = new File(currentDirectory, parts[1]);
+                        if (newDir.mkdir()) {
+                            out.println("Diretório criado com sucesso: " + parts[1]);
+                        } else {
+                            out.println("Erro: Não foi possível criar o diretório.");
+                        }
+                    }
+                    break;
+                case "rmdir":
+                    if (parts.length < 2) {
+                        out.println("Erro: Nome da pasta não especificado.");
+                    } else {
+                        File dir = new File(currentDirectory, parts[1]);
+                        if (!dir.exists()) {
+                            out.println("Erro: Diretório não encontrado.");
+                        } else if (!dir.isDirectory()) {
+                            out.println("Erro: O caminho especificado não é um diretório.");
+                        } else if (dir.list().length > 0) {
+                            out.println("Erro: O diretório não está vazio.");
+                        } else if (dir.delete()) {
+                            out.println("Diretório removido com sucesso: " + parts[1]);
+                        } else {
+                            out.println("Erro: Não foi possível remover o diretório.");
+                        }
+                    }
+                    break;
+                case "put":
+                    try (DataInputStream dis = new DataInputStream(socket.getInputStream())) {
+                    }catch (IOException e) {
+                        out.println("Erro ao receber arquivo: " + e.getMessage());
+                        throw e;
+                    }
 
-            String command;
-            while ((command = in.readLine()) != null) {
-                System.out.println("Comando recebido: " + command);
-                handleCommand(command);
+                    break;
+                case "get":
+                    try (DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+                         DataInputStream dis = new DataInputStream(socket.getInputStream())) {
+                        String fileName = dis.readUTF();
+                        File file = new File(currentDirectory, fileName);
+
+                        if (file.exists() && file.isFile()) {
+                            dos.writeUTF(file.getName());
+                            dos.writeLong(file.length());
+                            dos.flush();
+
+                            try (FileInputStream fis = new FileInputStream(file);
+                                 BufferedInputStream bis = new BufferedInputStream(fis)) {
+                                byte[] buffer = new byte[4096];
+                                int bytesRead;
+
+                                while ((bytesRead = bis.read(buffer)) != -1) {
+                                    dos.write(buffer, 0, bytesRead);
+                                }
+                                dos.flush();
+                            }
+
+                            out.println("Arquivo enviado com sucesso: " + fileName);
+                        } else {
+                            out.println("Erro: Arquivo não encontrado.");
+                        }
+                    } catch (IOException e) {
+                        out.println("Erro ao enviar arquivo: " + e.getMessage());
+                    }
+
+                    break;
+                default:
+                    out.println("Comando não reconhecido.");
             }
         } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void handleCommand(String command) {
-        StringTokenizer tokenizer = new StringTokenizer(command);
-        String action = tokenizer.nextToken();
-
-        switch (action) {
-            case "ls":
-                listarArquivos();
-                break;
-            case "cd":
-                mudarDiretorio(tokenizer.nextToken());
-                break;
-            case "mkdir":
-                criarDiretorio(tokenizer.nextToken());
-                break;
-            case "rmdir":
-                removerDiretorio(tokenizer.nextToken());
-                break;
-            case "put":
-                receberArquivo(tokenizer.nextToken());
-                break;
-            case "get":
-                enviarArquivo(tokenizer.nextToken());
-                break;
-            default:
-                out.println("Comando inválido!");
-        }
-    }
-
-    private void listarArquivos() {
-        File dir = new File("servidor/");
-        String[] arquivos = dir.list();
-        if (arquivos != null) {
-            for (String arquivo : arquivos) {
-                out.println(arquivo);
-            }
-        } else {
-            out.println("Erro ao listar arquivos.");
-        }
-    }
-
-    private void mudarDiretorio(String path) {
-        File dir = new File(path);
-        if (dir.isDirectory()) {
-            System.setProperty("user.dir", dir.getAbsolutePath());
-            out.println("Diretório alterado para: " + dir.getAbsolutePath());
-        } else {
-            out.println("Diretório não encontrado.");
-        }
-    }
-
-    private void criarDiretorio(String dirName) {
-        File dir = new File("servidor/" + dirName);
-        if (dir.mkdir()) {
-            out.println("Diretório criado: " + dirName);
-        } else {
-            out.println("Erro ao criar diretório.");
-        }
-    }
-
-    private void removerDiretorio(String dirName) {
-        File dir = new File("servidor/" + dirName);
-        if (dir.isDirectory() && dir.list().length == 0 && dir.delete()) {
-            out.println("Diretório removido: " + dirName);
-        } else {
-            out.println("Erro ao remover diretório.");
-        }
-    }
-
-    private void receberArquivo(String fileName) {
-        try {
-            FileOutputStream fos = new FileOutputStream("servidor/" + fileName);
-            BufferedInputStream bis = new BufferedInputStream(clientSocket.getInputStream());
-
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = bis.read(buffer)) > 0) {
-                fos.write(buffer, 0, bytesRead);
-            }
-
-            fos.close();
-            out.println("Arquivo recebido: " + fileName);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void enviarArquivo(String fileName) {
-        try {
-            File file = new File("servidor/" + fileName);
-            if (!file.exists()) {
-                out.println("Arquivo não encontrado.");
-                return;
-            }
-
-            FileInputStream fis = new FileInputStream(file);
-            BufferedOutputStream bos = new BufferedOutputStream(clientSocket.getOutputStream());
-
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = fis.read(buffer)) > 0) {
-                bos.write(buffer, 0, bytesRead);
-            }
-
-            bos.flush();
-            fis.close();
-            out.println("Arquivo enviado: " + fileName);
-        } catch (IOException e) {
-            e.printStackTrace();
+            out.println("Erro ao processar comando: " + e.getMessage());
         }
     }
 }
+
