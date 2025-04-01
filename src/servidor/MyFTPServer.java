@@ -11,7 +11,10 @@ public class MyFTPServer {
     private static Map<String, String> users = new HashMap<>();
 
     public static void main(String[] args) {
-        users.put("admin", "1234"); // Usuários cadastrados
+        // Usuários cadastrados
+        users.put("admin", "1234");
+        users.put("theo", "1234");
+        users.put("marcelo", "1234");
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
 

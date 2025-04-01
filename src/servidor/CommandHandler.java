@@ -7,8 +7,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class CommandHandler {
-    private File currentDirectory = new File("C:\\Users\\theo1\\IdeaProjects\\Rede de computadors\\src\\client\\VaultC");
-    private File serverDirectory = new File("C:\\Users\\theo1\\IdeaProjects\\Rede de computadors\\src\\servidor\\vaultServer");
+    private File currentDirectory = new File(".\\src\\client\\VaultC");
+    private File serverDirectory = new File(".\\src\\servidor\\vaultServer");
 
     public CommandHandler(Socket clientSocket) {
         // Cria os diretórios se não existirem

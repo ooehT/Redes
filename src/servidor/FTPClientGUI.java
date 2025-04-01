@@ -155,23 +155,22 @@ public class FTPClientGUI extends JFrame {
 
         if (files != null) {
             // Adiciona diretório pai (se não for a raiz)
-            if (currentServerDirectory.getParentFile() != null) {
+            if (currentServerDirectory.getParentFile() != null && currentServerDirectory.getParentFile().getName().equals("vaultServer")) {
                 remoteListModel.addElement("[..]");
             }
 
-            // Adiciona diretórios
+
             for (File file : files) {
+                // Adiciona diretórios
                 if (file.isDirectory()) {
                     remoteListModel.addElement("[DIR] " + file.getName());
                 }
-            }
-
-            // Adiciona arquivos
-            for (File file : files) {
-                if (file.isFile()) {
+                // Adiciona arquivos
+                else if (file.isFile()) {
                     remoteListModel.addElement(file.getName());
                 }
             }
+
         }
     }
 
@@ -257,7 +256,7 @@ public class FTPClientGUI extends JFrame {
 
         if (files != null) {
             // Adiciona diretório pai (se não for a raiz)
-            if (currentLocalDirectory.getParentFile() != null) {
+            if (currentLocalDirectory.getParentFile() != null && !(currentLocalDirectory.getParentFile().getName().equals("VaultC")) ) {
                 localListModel.addElement("[..]");
             }
 
