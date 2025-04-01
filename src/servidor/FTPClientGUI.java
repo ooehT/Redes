@@ -13,7 +13,7 @@ public class FTPClientGUI extends JFrame {
     private JTextArea logArea;
     private JList<String> localFileList, remoteFileList;
     private DefaultListModel<String> localListModel, remoteListModel;
-    private JButton uploadButton, downloadButton, refreshLocalButton, refreshRemoteButton, createFileL, removeFileL, createFileR, removeFileR ;
+    private JButton uploadButton, downloadButton, refreshLocalButton, refreshRemoteButton, createFileL, removeFileL ;
     private JLabel statusLabel;
 
     private Socket socket;
@@ -94,6 +94,8 @@ public class FTPClientGUI extends JFrame {
         removeFileL = new JButton("-");
         createFileL.setEnabled(false);
         removeFileL.setEnabled(false);
+        removeFileL.addActionListener(e -> removeClickFile());
+        createFileL.addActionListener(e -> createNewFile());
         localButtonPanel.add(createFileL); // Adiciona diretamente ao painel
         localButtonPanel.add(removeFileL); // Adiciona diretamente ao painel
 
@@ -129,12 +131,6 @@ public class FTPClientGUI extends JFrame {
         refreshRemoteButton.addActionListener(e -> refreshServerFiles());
         remoteButtonPanel.add(refreshRemoteButton);
 
-        createFileR = new JButton("+");
-        removeFileR = new JButton("-");
-        createFileR.setEnabled(false);
-        removeFileR.setEnabled(false);
-        remoteButtonPanel.add(createFileR); // Adiciona diretamente ao painel
-        remoteButtonPanel.add(removeFileR); // Adiciona diretamente ao painel
 
         downloadButton = new JButton("Baixar (Download)");
         downloadButton.setEnabled(false);
@@ -241,8 +237,6 @@ public class FTPClientGUI extends JFrame {
             disconnectButton.setEnabled(true);
             uploadButton.setEnabled(true);
             downloadButton.setEnabled(true);
-            createFileR.setEnabled(true);
-            removeFileR.setEnabled(true);
             createFileL.setEnabled(true);
             removeFileL.setEnabled(true);
 
@@ -269,8 +263,6 @@ public class FTPClientGUI extends JFrame {
             downloadButton.setEnabled(false);
             createFileL.setEnabled(false);
             removeFileL.setEnabled(false);
-            createFileR.setEnabled(false);
-            removeFileR.setEnabled(false);
             statusLabel.setText("Desconectado");
             logArea.append("Desconectado do servidor\n");
         }
@@ -360,7 +352,7 @@ public class FTPClientGUI extends JFrame {
 
     private void downloadFile() {
         String selected = remoteFileList.getSelectedValue();
-        if (selected == null || selected.startsWith("[") || !connected) {
+        if (selected == null || !connected) {
             JOptionPane.showMessageDialog(this, "Selecione um arquivo para baixar", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -396,9 +388,45 @@ public class FTPClientGUI extends JFrame {
     private void removeClickFile(){
         String selected = localFileList.getSelectedValue();
         if (selected == null || selected.startsWith("[") || !connected) {
-            JOptionPane.showMessageDialog(this, "Selecione um arquivo para baixar", "Aviso", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Selecione um arquivo para excluir", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        File fileToDelete = new File(currentLocalDirectory, selected);
+        if (!fileToDelete.exists()) {
+            JOptionPane.showMessageDialog(this, "Arquivo não encontrado!", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (fileToDelete.delete()) {
+            logArea.append("Arquivo excluído: " + selected + "\n");
+            refreshLocalFiles(); // Atualiza a lista após exclusão
+        } else {
+            JOptionPane.showMessageDialog(this, "Falha ao excluir o arquivo.", "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    private void createNewFile(){
+        String fileName = JOptionPane.showInputDialog(
+                this,                           // Componente pai (janela principal)
+                "Digite o nome do arquivo:",    // Mensagem
+                "Criar Arquivo",                // Título
+                JOptionPane.PLAIN_MESSAGE       // Tipo de mensagem (sem ícone)
+        );
+        if (fileName == null || fileName.trim().isEmpty()) {
+            return;
+        }
+        File newDir = new File(currentLocalDirectory, fileName);
+        if (newDir.mkdir()) {
+            logArea.append("Pasta criada: " + fileName + "\n");
+            refreshLocalFiles(); // Atualiza a lista de arquivos/pastas
+        } else {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Não foi possível criar a pasta. Ela já existe ou o nome é inválido.",
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+        logArea.append("Arquivo Criado: " + fileName + "\n");
+
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
