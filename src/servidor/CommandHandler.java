@@ -34,32 +34,32 @@ public class CommandHandler {
         this.clientDirectory = clientDirectory;
     }
 
-    public void handleCommand(String command, PrintWriter out, Socket socket) {
+    public void handleCommand(String command, DataOutputStream dos, Socket socket) {
         String[] parts = command.split(" ");
-        handleCommand(parts, out, socket);
+        handleCommand(parts, dos, socket);
     }
 
-    public void handleCommand(String command, PrintWriter out, Socket socket, File currentDirectory) {
+    public void handleCommand(String command, DataOutputStream dos, Socket socket, File currentDirectory) {
         this.currentDirectory = currentDirectory;
-        handleCommand(command, out, socket);
+        handleCommand(command, dos, socket);
     }
 
-    public void handleCommand(String[] parts, PrintWriter out, Socket socket) {
+    public void handleCommand(String[] parts, DataOutputStream dos, Socket socket) {
         try {
             switch (parts[0]) {
                 case "ls":
                     File[] files = currentDirectory.listFiles();
                     if (files != null && files.length > 0) {
                         for (File file : files) {
-                            out.println(file.isDirectory() ? "[DIR] " + file.getName() : "[FILE] " + file.getName());
+                            dos.writeUTF(file.isDirectory() ? "[DIR] " + file.getName() : "[FILE] " + file.getName());
                         }
                     } else {
-                        out.println("O diretório está vazio.");
+                        dos.writeUTF("O diretório está vazio.");
                     }
                     break;
                 case "cd":
                     if (parts.length < 2) {
-                        out.println("Erro: Nome do diretório não especificado.");
+                        dos.writeUTF("Erro: Nome do diretório não especificado.");
                     } else {
                         String dirName = "";
                         for (int i = 1; i < parts.length; i++) {
@@ -71,9 +71,9 @@ public class CommandHandler {
                         File newDir = new File(currentDirectory, dirName);
                         if (newDir.exists() && newDir.isDirectory()) {
                             currentDirectory = newDir;
-                            out.println("Diretório alterado para: " + currentDirectory.getAbsolutePath());
+                            dos.writeUTF("Diretório alterado para: " + currentDirectory.getAbsolutePath());
                         } else {
-                            out.println("Erro: Diretório não encontrado.");
+                            dos.writeUTF("Erro: Diretório não encontrado.");
                         }
                     }
                     break;
@@ -81,14 +81,14 @@ public class CommandHandler {
                     File parentDir = currentDirectory.getParentFile();
                     if (parentDir != null) {
                         currentDirectory = parentDir;
-                        out.println("Diretório alterado para: " + currentDirectory.getAbsolutePath());
+                        dos.writeUTF("Diretório alterado para: " + currentDirectory.getAbsolutePath());
                     } else {
-                        out.println("Erro: Não há diretório pai.");
+                        dos.writeUTF("Erro: Não há diretório pai.");
                     }
                     break;
                 case "mkdir":
                     if (parts.length < 2) {
-                        out.println("Erro: Nome da pasta não especificado.");
+                        dos.writeUTF("Erro: Nome da pasta não especificado.");
                     } else {
                         String dirName = "";
                         for (int i = 1; i < parts.length; i++) {
@@ -99,15 +99,15 @@ public class CommandHandler {
                         }
                         File newDir = new File(currentDirectory, dirName);
                         if (newDir.mkdir()) {
-                            out.println("Diretório criado com sucesso: " + parts[1]);
+                            dos.writeUTF("Diretório criado com sucesso: " + parts[1]);
                         } else {
-                            out.println("Erro: Não foi possível criar o diretório.");
+                            dos.writeUTF("Erro: Não foi possível criar o diretório.");
                         }
                     }
                     break;
                 case "rmdir":
                     if (parts.length < 2) {
-                        out.println("Erro: Nome da pasta não especificado.");
+                        dos.writeUTF("Erro: Nome da pasta não especificado.");
                     } else {
                         String dirName = "";
                         for (int i = 1; i < parts.length; i++) {
@@ -118,38 +118,59 @@ public class CommandHandler {
                         }
                         File dir = new File(currentDirectory, dirName);
                         if (!dir.exists()) {
-                            out.println("Erro: Diretório não encontrado.");
+                            dos.writeUTF("Erro: Diretório não encontrado.");
                         } else if (!dir.isDirectory()) {
-                            out.println("Erro: O caminho especificado não é um diretório.");
+                            dos.writeUTF("Erro: O caminho especificado não é um diretório.");
                         } else if (dir.list().length > 0) {
-                            out.println("Erro: O diretório não está vazio.");
+                            dos.writeUTF("Erro: O diretório não está vazio.");
                         } else if (dir.delete()) {
-                            out.println("Diretório removido com sucesso: " + parts[1]);
+                            dos.writeUTF("Diretório removido com sucesso: " + parts[1]);
                         } else {
-                            out.println("Erro: Não foi possível remover o diretório.");
+                            dos.writeUTF("Erro: Não foi possível remover o diretório.");
                         }
                     }
                     break;
                 case "put":
                     if (parts.length < 2) {
-                        out.println("Erro: Nome do arquivo não especificado.");
+                        dos.writeUTF("Erro: Nome do arquivo não especificado.");
                     }
                     else {
-                        File file = new File(currentDirectory, parts[1]);
-                        if (!file.exists()) {
-                            out.println("Erro: Arquivo não encontrado.");
-                        } else if (!file.isFile()) {
-                            out.println("Erro: O caminho especificado não é um arquivo.");
+                        String fileName = "";
+                        for (int i = 1; i < parts.length; i++) {
+                            fileName = fileName.concat(parts[i]);
+                            if (i < parts.length - 1) {
+                                fileName = fileName.concat(" ");
+                            }
                         }
-                        else
-                        {
+                        File destinationFile = new File(currentDirectory, fileName);
+                        dos.writeUTF("READY " + fileName);
+                        try (DataInputStream dis = new DataInputStream(socket.getInputStream());) {
+
+                            int fileSize = dis.readInt();
+
+                            if (fileSize > 1024 * 1024 * 10) {
+                                throw new IOException("Arquivo muito grande.");
+                            }
+                            else if (fileSize <= 0) {
+                                throw new IOException("nBytes <=0");
+                            }
+                            else {
+                                byte[] fileContentBytes = new byte[fileSize];
+                                dis.readFully(fileContentBytes, 0, fileSize);
+                            }
+
+                            // Confirma que o upload foi bem-sucedido
+                            dos.writeUTF("UPLOAD_OK");
+                        } catch (IOException e) {
+                            // Notifica o cliente em caso de erro
+                            dos.writeUTF("UPLOAD_ERROR: " + e.getMessage());
+                        }
 
 
-                        }
                     }
                     break;
                 case "get":
-                    try (DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+                    try (DataOutputStream ds = new DataOutputStream(socket.getOutputStream());
                          DataInputStream dis = new DataInputStream(socket.getInputStream())) {
                         String fileName = dis.readUTF();
                         File file = new File(currentDirectory, fileName);
@@ -170,20 +191,20 @@ public class CommandHandler {
                                 dos.flush();
                             }
 
-                            out.println("Arquivo enviado com sucesso: " + fileName);
+                            dos.writeUTF("Arquivo enviado com sucesso: " + fileName);
                         } else {
-                            out.println("Erro: Arquivo não encontrado.");
+                            dos.writeUTF("Erro: Arquivo não encontrado.");
                         }
                     } catch (IOException e) {
-                        out.println("Erro ao enviar arquivo: " + e.getMessage());
+                        dos.writeUTF("Erro ao enviar arquivo: " + e.getMessage());
                     }
 
                     break;
                 default:
-                    out.println("Comando não reconhecido.");
+                    dos.writeUTF("Comando não reconhecido.");
             }
         } catch (Exception e) {
-            out.println("Erro ao processar comando: " + e.getMessage());
+            System.err.println("Erro ao processar comando: " + e.getMessage());
         }
     }
 }

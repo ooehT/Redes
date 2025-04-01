@@ -23,8 +23,6 @@ public class FTPClientGUI extends JFrame {
     private File currentLocalDirectory = new File(".\\src\\client\\VaultC");
     private File currentServerDirectory = new File(".\\src\\servidor\\vaultServer");
 
-    private CommandHandler commandHandler = new CommandHandler(socket) ;
-
     public FTPClientGUI() {
         setTitle("MyFTP Client");
         setSize(800, 600);
@@ -168,13 +166,11 @@ public class FTPClientGUI extends JFrame {
         statusLabel = new JLabel("Desconectado");
         add(statusLabel, BorderLayout.SOUTH);
 
-        // Carrega os arquivos locais e do servidor inicialmente
-        refreshLocalFiles();
-        refreshServerFiles();
     }
 
     private void refreshServerFiles() {
         remoteListModel.clear();
+        // currentServerDirectory = commandHandler.getCurrentDirectory();
         File[] files = currentServerDirectory.listFiles();
 
         if (files != null) {
@@ -243,17 +239,22 @@ public class FTPClientGUI extends JFrame {
             }).start();
 
             // Envia comando de login
-            out.println("login " + username + " " + password);
 
-            connected = true;
-            connectButton.setEnabled(false);
-            disconnectButton.setEnabled(true);
-            uploadButton.setEnabled(true);
-            downloadButton.setEnabled(true);
-            createFileL.setEnabled(true);
-            removeFileL.setEnabled(true);
-            createFileR.setEnabled(true);
-            removeFileR.setEnabled(true);
+
+
+                connected = true;
+                connectButton.setEnabled(false);
+                disconnectButton.setEnabled(true);
+                uploadButton.setEnabled(true);
+                downloadButton.setEnabled(true);
+                createFileL.setEnabled(true);
+                removeFileL.setEnabled(true);
+                createFileR.setEnabled(true);
+                removeFileR.setEnabled(true);
+
+                refreshLocalFiles();
+                refreshServerFiles();
+
 
             statusLabel.setText("Conectado a " + server + ":" + port);
 
@@ -287,6 +288,7 @@ public class FTPClientGUI extends JFrame {
 
     private void refreshLocalFiles() {
         localListModel.clear();
+        // commandHandler.setClientDirectory(currentLocalDirectory);
         File[] files = currentLocalDirectory.listFiles();
 
         if (files != null) {
