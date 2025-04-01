@@ -1,5 +1,6 @@
 package servidor;
 
+import src.*;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -7,17 +8,40 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class CommandHandler {
-    private File currentDirectory = new File(".\\src\\client\\VaultC");
-    private File serverDirectory = new File(".\\src\\servidor\\vaultServer");
+    private File currentDirectory = new File(".\\src\\servidor\\vaultServer");
+    private File clientDirectory = new File(".\\src\\client\\VaultC");
 
     public CommandHandler(Socket clientSocket) {
         // Cria os diretórios se não existirem
         if (!currentDirectory.exists()) {
             currentDirectory.mkdir();
         }
-        if (!serverDirectory.exists()) {
-            serverDirectory.mkdir();
-        }
+    }
+
+    public File getCurrentDirectory() {
+        return currentDirectory;
+    }
+
+    public void setCurrentDirectory(File currentDirectory) {
+        this.currentDirectory = currentDirectory;
+    }
+
+    public File getClientDirectory() {
+        return clientDirectory;
+    }
+
+    public void setClientDirectory(File clientDirectory) {
+        this.clientDirectory = clientDirectory;
+    }
+
+    public void handleCommand(String command, PrintWriter out, Socket socket) {
+        String[] parts = command.split(" ");
+        handleCommand(parts, out, socket);
+    }
+
+    public void handleCommand(String command, PrintWriter out, Socket socket, File currentDirectory) {
+        this.currentDirectory = currentDirectory;
+        handleCommand(command, out, socket);
     }
 
     public void handleCommand(String[] parts, PrintWriter out, Socket socket) {
@@ -37,7 +61,14 @@ public class CommandHandler {
                     if (parts.length < 2) {
                         out.println("Erro: Nome do diretório não especificado.");
                     } else {
-                        File newDir = new File(currentDirectory, parts[1]);
+                        String dirName = "";
+                        for (int i = 1; i < parts.length; i++) {
+                            dirName = dirName.concat(parts[i]);
+                            if (i < parts.length - 1) {
+                                dirName = dirName.concat(" ");
+                            }
+                        }
+                        File newDir = new File(currentDirectory, dirName);
                         if (newDir.exists() && newDir.isDirectory()) {
                             currentDirectory = newDir;
                             out.println("Diretório alterado para: " + currentDirectory.getAbsolutePath());
@@ -59,7 +90,14 @@ public class CommandHandler {
                     if (parts.length < 2) {
                         out.println("Erro: Nome da pasta não especificado.");
                     } else {
-                        File newDir = new File(currentDirectory, parts[1]);
+                        String dirName = "";
+                        for (int i = 1; i < parts.length; i++) {
+                            dirName = dirName.concat(parts[i]);
+                            if (i < parts.length - 1) {
+                                dirName = dirName.concat(" ");
+                            }
+                        }
+                        File newDir = new File(currentDirectory, dirName);
                         if (newDir.mkdir()) {
                             out.println("Diretório criado com sucesso: " + parts[1]);
                         } else {
@@ -71,7 +109,14 @@ public class CommandHandler {
                     if (parts.length < 2) {
                         out.println("Erro: Nome da pasta não especificado.");
                     } else {
-                        File dir = new File(currentDirectory, parts[1]);
+                        String dirName = "";
+                        for (int i = 1; i < parts.length; i++) {
+                            dirName = dirName.concat(parts[i]);
+                            if (i < parts.length - 1) {
+                                dirName = dirName.concat(" ");
+                            }
+                        }
+                        File dir = new File(currentDirectory, dirName);
                         if (!dir.exists()) {
                             out.println("Erro: Diretório não encontrado.");
                         } else if (!dir.isDirectory()) {
@@ -86,12 +131,22 @@ public class CommandHandler {
                     }
                     break;
                 case "put":
-                    try (DataInputStream dis = new DataInputStream(socket.getInputStream())) {
-                    }catch (IOException e) {
-                        out.println("Erro ao receber arquivo: " + e.getMessage());
-                        throw e;
+                    if (parts.length < 2) {
+                        out.println("Erro: Nome do arquivo não especificado.");
                     }
+                    else {
+                        File file = new File(currentDirectory, parts[1]);
+                        if (!file.exists()) {
+                            out.println("Erro: Arquivo não encontrado.");
+                        } else if (!file.isFile()) {
+                            out.println("Erro: O caminho especificado não é um arquivo.");
+                        }
+                        else
+                        {
 
+
+                        }
+                    }
                     break;
                 case "get":
                     try (DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -127,7 +182,7 @@ public class CommandHandler {
                 default:
                     out.println("Comando não reconhecido.");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             out.println("Erro ao processar comando: " + e.getMessage());
         }
     }
