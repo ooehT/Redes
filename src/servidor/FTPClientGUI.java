@@ -137,8 +137,8 @@ public class FTPClientGUI extends JFrame {
         removeFileR = new JButton("-");
         createFileR.setEnabled(false);
         removeFileR.setEnabled(false);
-        removeFileR.addActionListener(e -> removeClickFile());
-        createFileR.addActionListener(e -> createNewFile());
+        removeFileR.addActionListener(e -> removeClickFileR());
+        createFileR.addActionListener(e -> createNewFileR());
         remoteButtonPanel.add(createFileR); // Adiciona diretamente ao painel
         remoteButtonPanel.add(removeFileR); // Adiciona diretamente ao painel
 
@@ -203,15 +203,12 @@ public class FTPClientGUI extends JFrame {
         if (selected == null) return;
 
         if (selected.equals("[..]")) {
-            // currentServerDirectory = currentServerDirectory.getParentFile();
-            commandHandler.handleCommand("cd..", out, socket, currentServerDirectory);
-            currentServerDirectory = commandHandler.getCurrentDirectory();
+             currentServerDirectory = currentServerDirectory.getParentFile();
+
         } else if (selected.startsWith("[DIR] ")) {
             String dirName = selected.substring(6);
-            // currentServerDirectory = new File(currentServerDirectory, dirName);
-            String command = "cd " + dirName;
-            commandHandler.handleCommand(command, out, socket, currentServerDirectory);
-            currentServerDirectory = commandHandler.getCurrentDirectory();
+            currentServerDirectory = new File(currentServerDirectory, dirName);
+
         } else {
             return; // Não faz nada para arquivos
         }
@@ -449,6 +446,51 @@ public class FTPClientGUI extends JFrame {
             );
         }
         refreshLocalFiles();
+    }
+    private void removeClickFileR(){
+        String selected = remoteFileList.getSelectedValue();
+        if(selected==null){
+            JOptionPane.showMessageDialog(this, "Selecione o arquivo", "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+        if(selected.startsWith("[DIR] ")){
+            selected = selected.substring("[DIR] ".length());
+        }
+        File fileToDownload = new File(currentServerDirectory   , selected);
+        if (!fileToDownload.exists()) {
+            JOptionPane.showMessageDialog(this, "Arquivo não encontrado no servidor", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+
+        if(fileToDownload.delete()) {
+            refreshServerFiles();
+            logArea.append("Arquivo excluido: " + fileToDownload.getName() + "\n");
+        }
+    }
+
+    private void createNewFileR(){
+        String fileName = JOptionPane.showInputDialog(
+                this,                           // Componente pai (janela principal)
+                "Digite o nome do arquivo:",    // Mensagem
+                "Criar Arquivo",                // Título
+                JOptionPane.PLAIN_MESSAGE       // Tipo de mensagem (sem ícone)
+        );
+        if (fileName == null || fileName.trim().isEmpty()) {
+            return;
+        }
+        File newDir = new File(currentServerDirectory, fileName);
+        if (newDir.mkdir()) {
+            logArea.append("Pasta criada: " + fileName + "\n");
+            refreshLocalFiles(); // Atualiza a lista de arquivos/pastas
+        } else {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Não foi possível criar a pasta. Ela já existe ou o nome é inválido.",
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+        refreshServerFiles();
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
