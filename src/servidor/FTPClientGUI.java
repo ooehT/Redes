@@ -20,8 +20,8 @@ public class FTPClientGUI extends JFrame {
     private PrintWriter out;
     private BufferedReader in;
     private boolean connected = false;
-    private File currentLocalDirectory = new File("C:\\Users\\theo1\\IdeaProjects\\Rede de computadors\\src\\client\\VaultC");
-    private File currentServerDirectory = new File("C:\\Users\\theo1\\IdeaProjects\\Rede de computadors\\src\\servidor\\vaultServer");
+    private File currentLocalDirectory = new File(".\\src\\client\\VaultC");
+    private File currentServerDirectory = new File(".\\src\\servidor\\vaultServer");
 
     public FTPClientGUI() {
         setTitle("MyFTP Client");
