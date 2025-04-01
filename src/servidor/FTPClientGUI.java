@@ -352,7 +352,7 @@ public class FTPClientGUI extends JFrame {
 
     private void downloadFile() {
         String selected = remoteFileList.getSelectedValue();
-        if (selected == null || !connected) {
+        if (selected == null || selected.startsWith("[") || !connected) {
             JOptionPane.showMessageDialog(this, "Selecione um arquivo para baixar", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -387,22 +387,21 @@ public class FTPClientGUI extends JFrame {
     }
     private void removeClickFile(){
         String selected = localFileList.getSelectedValue();
-        if (selected == null || selected.startsWith("[") || !connected) {
-            JOptionPane.showMessageDialog(this, "Selecione um arquivo para excluir", "Aviso", JOptionPane.WARNING_MESSAGE);
+
+        if(selected.startsWith("[DIR] ")){
+            selected = selected.substring("[DIR] ".length());
+        }
+        File fileToDownload = new File(currentLocalDirectory, selected);
+        if (!fileToDownload.exists()) {
+            JOptionPane.showMessageDialog(this, "Arquivo não encontrado no servidor", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        File fileToDelete = new File(currentLocalDirectory, selected);
-        if (!fileToDelete.exists()) {
-            JOptionPane.showMessageDialog(this, "Arquivo não encontrado!", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        if (fileToDelete.delete()) {
-            logArea.append("Arquivo excluído: " + selected + "\n");
-            refreshLocalFiles(); // Atualiza a lista após exclusão
-        } else {
-            JOptionPane.showMessageDialog(this, "Falha ao excluir o arquivo.", "Erro", JOptionPane.ERROR_MESSAGE);
-        }
+
+
+        fileToDownload.delete();
+        refreshLocalFiles();
     }
+
     private void createNewFile(){
         String fileName = JOptionPane.showInputDialog(
                 this,                           // Componente pai (janela principal)
