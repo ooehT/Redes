@@ -82,7 +82,7 @@ public class ClientHandler implements Runnable {
                     authenticated = true;
                     username = parts[1];
                     commandHandler.setClientDirectory(new File(commandHandler.getClientDirectory(), username));
-                    dos.writeUTF("Login bem-sucedido! Bem vindo " + username + ".");
+                    dos.writeUTF("Login bem-sucedido! Bem vindo " + username);
                 } else {
                     dos.writeUTF("Usuário ou senha incorretos.");
                 }

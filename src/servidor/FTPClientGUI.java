@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.net.StandardSocketOptions;
 
 public class FTPClientGUI extends JFrame {
     private JTextField serverField, portField, userField, passField;
@@ -22,6 +23,7 @@ public class FTPClientGUI extends JFrame {
     private boolean connected = false;
     private File currentLocalDirectory = new File(".\\src\\client\\VaultC");
     private File currentServerDirectory = new File(".\\src\\servidor\\vaultServer");
+    private String lastServerMessage = "";
 
     public FTPClientGUI() {
         setTitle("MyFTP Client");
@@ -229,6 +231,7 @@ public class FTPClientGUI extends JFrame {
                     String line;
                     while ((line = in.readUTF()) != null) {
                         String finalLine = line;
+                        lastServerMessage = finalLine;
                         SwingUtilities.invokeLater(() -> logArea.append(finalLine + "\n"));
                     }
                 } catch (IOException e) {
@@ -239,9 +242,9 @@ public class FTPClientGUI extends JFrame {
             }).start();
 
             // Envia comando de login
-
-
-
+            out.writeUTF("login " + username + " " + password);
+            for(long i=0;i<1000000000;i++) {}
+            if (lastServerMessage.startsWith("Login bem-sucedido!")) {
                 connected = true;
                 connectButton.setEnabled(false);
                 disconnectButton.setEnabled(true);
@@ -252,9 +255,12 @@ public class FTPClientGUI extends JFrame {
                 createFileR.setEnabled(true);
                 removeFileR.setEnabled(true);
 
+                String user = lastServerMessage.substring("Login bem-sucedido! Bem vindo ".length()).trim();
+                currentLocalDirectory = new File(".\\src\\client\\VaultC\\" + user);
+
                 refreshLocalFiles();
                 refreshServerFiles();
-
+            }
 
             statusLabel.setText("Conectado a " + server + ":" + port);
 
@@ -281,6 +287,8 @@ public class FTPClientGUI extends JFrame {
             removeFileL.setEnabled(false);
             createFileR.setEnabled(false);
             removeFileR.setEnabled(false);
+            localListModel.clear();
+            remoteListModel.clear();
             statusLabel.setText("Desconectado");
             logArea.append("Desconectado do servidor\n");
         }
@@ -480,11 +488,10 @@ public class FTPClientGUI extends JFrame {
         if (fileName == null || fileName.trim().isEmpty()) {
             return;
         }
-        File newDir = new File(currentServerDirectory, fileName);
-        if (newDir.mkdir()) {
-            logArea.append("Pasta criada: " + fileName + "\n");
-            refreshLocalFiles(); // Atualiza a lista de arquivos/pastas
-        } else {
+        try {
+            out.writeUTF("mkdir " + fileName);
+        } catch (IOException e) {
+            System.err.println("Erro ao criar pasta: " + e.getMessage());
             JOptionPane.showMessageDialog(
                     this,
                     "Não foi possível criar a pasta. Ela já existe ou o nome é inválido.",
