@@ -17,8 +17,8 @@ public class FTPClientGUI extends JFrame {
     private JLabel statusLabel;
 
     private Socket socket;
-    private PrintWriter out;
-    private BufferedReader in;
+    private DataOutputStream out;
+    private DataInputStream in;
     private boolean connected = false;
     private File currentLocalDirectory = new File(".\\src\\client\\VaultC");
     private File currentServerDirectory = new File(".\\src\\servidor\\vaultServer");
@@ -220,14 +220,14 @@ public class FTPClientGUI extends JFrame {
 
         try {
             socket = new Socket(server, port);
-            out = new PrintWriter(socket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new DataOutputStream(socket.getOutputStream());
+            in = new DataInputStream(socket.getInputStream());
 
             // Thread para receber mensagens do servidor
             new Thread(() -> {
                 try {
                     String line;
-                    while ((line = in.readLine()) != null) {
+                    while ((line = in.readUTF()) != null) {
                         String finalLine = line;
                         SwingUtilities.invokeLater(() -> logArea.append(finalLine + "\n"));
                     }
@@ -347,7 +347,7 @@ public class FTPClientGUI extends JFrame {
              BufferedInputStream bis = new BufferedInputStream(fis)) {
 
             // Envia comando PUT
-            out.println("put");
+            out.writeUTF("put");
 
             // Envia nome e tamanho do arquivo
             dos.writeUTF(fileToUpload.getName());
@@ -387,7 +387,7 @@ public class FTPClientGUI extends JFrame {
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
             // Envia comando GET
-            out.println("get " + selected);
+            out.writeUTF("get " + selected);
 
             // Lê o arquivo do servidor
             byte[] buffer = new byte[4096];
